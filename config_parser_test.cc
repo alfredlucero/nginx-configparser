@@ -51,7 +51,13 @@ TEST_F(NginxStringConfigTest, SimpleInvalidStatementCongif) {
 }
 
 TEST_F(NginxStringConfigTest, NestedStatementConfig) {
-  EXPECT_TRUE(ParseString("foo { hello there; }"));
+  EXPECT_TRUE(ParseString("simple { nested statement; }"));
   EXPECT_EQ(1, out_config_.statements_.size()) << "Config has one statement";
-  EXPECT_EQ("foo", out_config_.statements_[0]->tokens_[0]); 
+  EXPECT_EQ("simple", out_config_.statements_[0]->tokens_[0]); 
+}
+
+TEST_F(NginxStringConfigTest, InvalidNestedStatementConfig) {
+  EXPECT_FALSE(ParseString("missing { semicolon }")) << "Nested config statement missing semicolon";
+  EXPECT_FALSE(ParseString("missing { closing curly braces; ")) << "Nested config missing matching curly braces"; // Bug found here with unmatched curly braces TODO: fix in config_parser.cc
+  EXPECT_FALSE(ParseString("improper } arrangement of curlies; {")) << "Nested config with curly braces in wrong closed/open order";
 }
