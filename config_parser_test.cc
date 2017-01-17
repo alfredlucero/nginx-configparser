@@ -31,7 +31,7 @@ TEST(NginxConfigParserTest, SimpleConfigNonExistingFile) {
   EXPECT_FALSE(is_file_parsed) << "Config file is nonexistent and cannot be parsed.";
 }
 
-TEST(NginxConfigToStringTest, ToString) {
+TEST(NginxConfigStatementTest, ToString) {
   NginxConfigStatement statement;
   statement.tokens_.push_back("foo");
   statement.tokens_.push_back("bar");
@@ -46,8 +46,10 @@ TEST_F(NginxStringConfigTest, SimpleStatementConfig) {
   EXPECT_EQ("bar", out_config_.statements_[0]->tokens_[1]);
 }
 
-TEST_F(NginxStringConfigTest, SimpleInvalidStatementCongif) {
-  EXPECT_FALSE(ParseString("foo bar"));
+TEST_F(NginxStringConfigTest, SimpleInvalidStatementConfig) {
+  EXPECT_FALSE(ParseString("foo bar")) << "Config missing semicolon";
+  EXPECT_FALSE(ParseString("foo 'bar;")) << "Config missing closed single quote";
+  EXPECT_FALSE(ParseString("foo 'bar\";")) << "Config with improper closed quote";
 }
 
 TEST_F(NginxStringConfigTest, NestedStatementConfig) {
