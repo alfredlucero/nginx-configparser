@@ -19,7 +19,7 @@ TEST(NginxConfigParserTest, SimpleConfigExistingFile) {
 
   bool is_file_parsed = parser.Parse("example_config", &out_config);
 
-  EXPECT_TRUE(is_file_parsed);
+  EXPECT_TRUE(is_file_parsed) << "Example config file can be parsed";
 }
 
 TEST(NginxConfigParserTest, SimpleConfigNonExistingFile) {
@@ -28,6 +28,30 @@ TEST(NginxConfigParserTest, SimpleConfigNonExistingFile) {
   
   bool is_file_parsed = parser.Parse("non_existent_config", &out_config);
   
-  EXPECT_FALSE(is_file_parsed);
+  EXPECT_FALSE(is_file_parsed) << "Config file is nonexistent and cannot be parsed.";
 }
 
+TEST(NginxConfigToStringTest, ToString) {
+  NginxConfigStatement statement;
+  statement.tokens_.push_back("foo");
+  statement.tokens_.push_back("bar");
+  
+  EXPECT_EQ(statement.ToString(0), "foo bar;\n") << "ToString function should convert the tokens to the statement: foo bar;\n";
+
+}
+
+TEST_F(NginxStringConfigTest, SimpleStatementConfig) {
+  EXPECT_TRUE(ParseString("foo bar;"));
+  EXPECT_EQ(1, out_config_.statements_.size()) << "Config has one statement";
+  EXPECT_EQ("bar", out_config_.statements_[0]->tokens_[1]);
+}
+
+TEST_F(NginxStringConfigTest, SimpleInvalidStatementCongif) {
+  EXPECT_FALSE(ParseString("foo bar"));
+}
+
+TEST_F(NginxStringConfigTest, NestedStatementConfig) {
+  EXPECT_TRUE(ParseString("foo { hello there; }"));
+  EXPECT_EQ(1, out_config_.statements_.size()) << "Config has one statement";
+  EXPECT_EQ("foo", out_config_.statements_[0]->tokens_[0]); 
+}
