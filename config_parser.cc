@@ -150,6 +150,7 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream* input,
 bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
   std::stack<NginxConfig*> config_stack;
   config_stack.push(config);
+  std::stack<TokenType> curly_brace_stack;
   TokenType last_token_type = TOKEN_TYPE_START;
   TokenType token_type;
   while (true) {
@@ -190,6 +191,7 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         break;
       }
     } else if (token_type == TOKEN_TYPE_START_BLOCK) {
+      curly_brace_stack.push(token_type);
       if (last_token_type != TOKEN_TYPE_NORMAL) {
         // Error.
         break;
@@ -199,6 +201,12 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
           new_config);
       config_stack.push(new_config);
     } else if (token_type == TOKEN_TYPE_END_BLOCK) {
+      if (curly_brace_stack.empty()) {
+       // Error.
+       break;
+      }
+      curly_brace_stack.pop();
+
       if (last_token_type != TOKEN_TYPE_STATEMENT_END) {
         // Error.
         break;
@@ -210,6 +218,12 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         // Error.
         break;
       }
+
+      if (!curly_brace_stack.empty()) {
+        // Error.
+        break;
+      }
+
       return true;
     } else {
       // Error. Unknown token.
