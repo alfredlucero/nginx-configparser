@@ -150,6 +150,7 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream* input,
 bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
   std::stack<NginxConfig*> config_stack;
   config_stack.push(config);
+  std::stack<TokenType> curly_brace_stack; // Stack to keep track of balanced curly braces - pushes on open curly brace and pops on ending curly brace
   TokenType last_token_type = TOKEN_TYPE_START;
   TokenType token_type;
   while (true) {
@@ -190,15 +191,26 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         break;
       }
     } else if (token_type == TOKEN_TYPE_START_BLOCK) {
+      curly_brace_stack.push(token_type);
+
       if (last_token_type != TOKEN_TYPE_NORMAL) {
         // Error.
         break;
       }
+
       NginxConfig* const new_config = new NginxConfig;
       config_stack.top()->statements_.back().get()->child_block_.reset(
           new_config);
       config_stack.push(new_config);
     } else if (token_type == TOKEN_TYPE_END_BLOCK) {
+      if (curly_brace_stack.empty()) {
+       // Error: unbalanced curly braces, missing matching open curly brace
+       printf("Error: Unbalanced Curly Braces - missing opening curly braces\n");
+       return false;
+      }
+
+      curly_brace_stack.pop();
+
       if (last_token_type != TOKEN_TYPE_STATEMENT_END) {
         // Error.
         break;
@@ -210,6 +222,13 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
         // Error.
         break;
       }
+
+      if (!curly_brace_stack.empty()) {
+        // Error: unbalanced curly braces, missing matching ending curly brace
+	printf("Error: Unbalanced Curly Braces - missing ending curly braces\n");
+        return false;
+      }
+
       return true;
     } else {
       // Error. Unknown token.
